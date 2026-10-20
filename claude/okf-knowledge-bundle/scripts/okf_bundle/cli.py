@@ -130,14 +130,9 @@ def execute(args):
     store = StateStore(args.run)
     if cmd == "review-preview":
         from .batch_review import review_preview
+        from .preview_output import write_preview
         preview = review_preview(store.load(), args.concept_ids)
-        destination = Path(args.out).resolve()
-        if destination.exists() or destination.is_relative_to(store.private):
-            raise ValueError("Use a new preview file outside immutable private state")
-        atomic_json(destination, preview)
-        return {"preview": str(destination), "preview_hash": digest(preview),
-                "concepts": len(preview["concepts"]), "statements": len(preview["claims"]),
-                "scope": "Content review only; no client confirmation or release approval"}
+        return write_preview(preview, args.out, store.private)
     if cmd == "demonstration":
         from .demonstration import build_demonstration
         destination = Path(args.out).resolve()

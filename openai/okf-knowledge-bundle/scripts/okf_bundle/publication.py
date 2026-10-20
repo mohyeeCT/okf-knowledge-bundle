@@ -70,7 +70,12 @@ def verify_publication(manifest, base_url, fetch, removed_paths=None, replacemen
         headers, body = response["headers"], response["body"]
         observations.append({"path": path, "url": url, "observed_url": response.get("url"), "status": status,
                              "sha256": digest(body), "content_type": headers.get("content-type"),
-                             "content_encoding": headers.get("content-encoding")})
+                             "content_encoding": headers.get("content-encoding"),
+                             "x_robots_tag": headers.get("x-robots-tag")})
+        if manifest.get("deployment", {}).get("indexing") == "noindex-crawlable":
+            directives = headers.get("x-robots-tag", "").lower()
+            if ":" in directives or "noindex" not in [part.strip() for part in directives.split(",")]:
+                issue("indexing", path, "Expected an unscoped X-Robots-Tag: noindex response header")
         if status != 200:
             issue("status", path, f"Expected HTTP 200, received {status}")
         if response.get("url") and response["url"] != url:
@@ -104,6 +109,10 @@ def verify_publication(manifest, base_url, fetch, removed_paths=None, replacemen
                 normal = request(url, {})
                 if normal.get("status") != 200 or digest(normal["body"]) != expected_hash:
                     issue("normal_download", path, "Normal-client downloaded entity differs from approved archive")
+                if manifest.get("deployment", {}).get("indexing") == "noindex-crawlable":
+                    directives = normal["headers"].get("x-robots-tag", "").lower()
+                    if ":" in directives or "noindex" not in [part.strip() for part in directives.split(",")]:
+                        issue("indexing", path, "Normal archive download lacks the unscoped noindex header")
                 if normal["headers"].get("content-encoding", "identity").lower() not in {"", "identity"}:
                     issue("encoding", path, "Already-gzipped archive is incorrectly labelled with transport gzip")
                 check_archive(normal["body"], path)

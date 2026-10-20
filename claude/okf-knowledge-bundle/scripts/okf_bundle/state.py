@@ -49,7 +49,7 @@ def new_state(config):
     policy = config.setdefault("confirmation_policy", "critical-only")
     if policy not in {"critical-only", "all-risk"}:
         raise ValueError("Unknown business confirmation policy")
-    defaults = {"locale": "en", "business_profiles": [], "model": "record-actual-host-model", "effort": "medium", "public_base_path": "/okf/", "indexing": "indexable", "availability_mode": "offline", "collection_authorized": False}
+    defaults = {"locale": "en", "business_profiles": [], "model": "record-actual-host-model", "effort": "medium", "public_base_path": "/okf/", "indexing": "noindex-crawlable", "availability_mode": "offline", "collection_authorized": False}
     for key, value in defaults.items():
         config.setdefault(key, value)
     if not config.get("domains"):
