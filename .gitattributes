@@ -1,0 +1,8 @@
+* text=auto
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.zip binary
+*.pdf binary
+/openai/okf-knowledge-bundle/** -text
+/claude/okf-knowledge-bundle/** -text

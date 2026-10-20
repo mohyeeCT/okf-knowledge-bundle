@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "version": "0.2.13",
+  "public_packaging_revision": 1,
+  "platforms": [
+    "claude",
+    "openai"
+  ],
+  "files_per_skill": 61,
+  "matching_platform_and_archive_hashes": true,
+  "local_markdown_links_checked": 49,
+  "client_data_or_historical_notes_included": false,
+  "network_or_provider_calls": 0,
+  "verified_date": "2026-10-20",
+  "software_regressions": {
+    "passed": 358,
+    "scope": "Synthetic fixtures, mocked providers and localhost only",
+    "log_sha256": "16a5d56e8fa6bfcafb6c16419894f0e8954471c1fb95c48ed67d58dadf60a89d"
+  },
+  "unchanged_processing_and_synthetic_test_files": 51,
+  "native_chatgpt_workspace_agent_pilot_completed": false,
+  "historical_design_release_and_benchmark_notes_included": false
+}

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Website OKF Knowledge Bundle"
+  short_description: "Review website facts and prepare an OKF handoff"
+  default_prompt: "Use $okf-knowledge-bundle to prepare a reviewed website knowledge bundle from my crawl export, sitemap or URL CSV."
+policy:
+  allow_implicit_invocation: true
