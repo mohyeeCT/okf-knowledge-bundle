@@ -21,16 +21,16 @@ def file_map(folder):
 
 
 def main():
-    manifest = json.loads((ROOT / 'docs/package-manifest-0.2.13-public.1.json').read_text(encoding='utf-8'))
+    manifest = json.loads((ROOT / 'docs/package-manifest-0.2.14-public.1.json').read_text(encoding='utf-8'))
     expected = manifest['files']
-    assert len(expected) == 61
+    assert len(expected) == 64
     for platform in ('openai', 'claude'):
         folder = ROOT / platform / 'okf-knowledge-bundle'
         assert file_map(folder) == expected, platform
         for name in expected:
             path = PurePosixPath(name)
             assert not path.is_absolute() and '..' not in path.parts and '\\' not in name
-        assert '__version__ = "0.2.13"' in (folder / 'scripts/okf_bundle/__init__.py').read_text()
+        assert '__version__ = "0.2.14"' in (folder / 'scripts/okf_bundle/__init__.py').read_text()
     for archive_name, expected_sha in manifest['archives'].items():
         archive = ROOT / archive_name
         assert sha(archive.read_bytes()) == expected_sha
@@ -54,7 +54,7 @@ def main():
             assert (path.parent / relative).exists(), (str(path.relative_to(ROOT)), target)
             checked_links += 1
     report = {
-        'status': 'passed', 'version': '0.2.13', 'public_packaging_revision': 1,
+        'status': 'passed', 'version': '0.2.14', 'public_packaging_revision': 1,
         'platforms': ['claude', 'openai'], 'files_per_skill': len(expected),
         'matching_platform_and_archive_hashes': True,
         'local_markdown_links_checked': checked_links,

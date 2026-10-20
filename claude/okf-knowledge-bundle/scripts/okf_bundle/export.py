@@ -430,9 +430,9 @@ def eligibility(state, now):
     base = config.get("public_base_path", "/okf/")
     if not isinstance(base, str) or not base.startswith("/") or not base.endswith("/") or ".." in base or "\\" in base or "?" in base or "#" in base:
         add("profile.deployment.path", "run", "Public base path must be a safe absolute directory route")
-    if config.get("indexing") not in {"indexable", "direct-fetch-only"}:
+    if config.get("indexing") not in {"indexable", "noindex-crawlable", "direct-fetch-only"}:
         add("profile.indexing", "run", "Unknown indexing policy")
-    if config.get("indexing") != "indexable":
+    if config.get("indexing") == "direct-fetch-only":
         decision = config.get("indexing_decision", {})
         if decision.get("owner") != config.get("publication_owner") or not decision.get("reason"):
             add("profile.indexing", "run", "Alternative indexing policy needs an owner decision")
@@ -726,6 +726,21 @@ def _handoff_freshness(state, included, manifest):
             "validation result renews either deadline.\n\n")
 
 
+def _indexing_instructions(policy):
+    if policy == "noindex-crawlable":
+        return ("Set `X-Robots-Tag: noindex` on every response under the approved bundle path, "
+                "including Markdown, indexes and the archive. Keep that path accessible to the intended crawlers; "
+                "do not add a robots.txt Disallow for it. If an existing rule blocks access, report it for an authorized change. "
+                "Keep the original website pages indexable and preserve every source link in the bundle. "
+                "Do not apply this header to the source pages or add noindexed bundle URLs to the search XML sitemap. "
+                "This policy prevents supported search indexing of the bundle; it does not make it private or guarantee "
+                "that AI systems will read it or cite the original pages. Search-based systems may not retrieve it. ")
+    if policy == "indexable":
+        return ("Preserve this run's explicit indexable policy: provide an indexable, snippet-eligible entry route. "
+                "Do not add noindex automatically to this existing release. ")
+    return "Use this run's recorded owner decision for direct-fetch-only access; do not invent a crawler policy. "
+
+
 def _deployment_text(manifest, freshness_text):
     change = manifest["changes"]
     removed = "\n".join("- `" + path + "`" for path in change["removed"]) or "- None."
@@ -752,13 +767,13 @@ def _deployment_text(manifest, freshness_text):
             "Do not rewrite file URLs to an application shell or login page. Preserve case, paths, relative links and bytes. "
             "Configure static-file routing in WordPress/static hosts; closed CMSs need a verified route/proxy/storage plan.\n\n"
             f"Approved indexing strategy: `{manifest['deployment']['indexing']}`. "
-            "Do not impose blanket noindex or canonicalize every concept to its source. Where search discovery is intended, "
-            "provide an indexable, snippet-eligible entry route. Add an ordinary website link to that entry or the bundle index; "
+            + _indexing_instructions(manifest['deployment']['indexing']) +
+            "Do not canonicalize every concept to its source. An authorized ordinary website link can point to the bundle index; "
             "a download link may target okf.tar.gz. /okf/ is our convention, not a Google requirement. "
             "Optional llms.txt, sitemap, CORS or crawler-policy changes require separate reviewed decisions. "
             "Preserve the client's existing AI-bot policy and report access conflicts.\n\n"
             "## Verification and rollback\n\n"
-            "With authorization for the exact deployment target, check status, content type, entity hashes, relative links, "
+            "With authorization for the exact deployment target, check status, content type, X-Robots-Tag headers, crawler access, entity hashes, relative links, "
             "archive contents and retired paths. Test both identity-transfer bytes and a normal-client download. "
             "Do not interpret an HTTP 200, crawler request or bundle publication as proof of indexing, citation or SEO benefit. "
             "If a check fails, restore the complete previous manifest and clear caches.\n\n"

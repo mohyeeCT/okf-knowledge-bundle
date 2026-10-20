@@ -1,7 +1,11 @@
-# Verification — processing release 0.2.13
+# Verification — 0.2.14
 
-This public distribution includes the current processing scripts and original synthetic regression fixtures. It excludes historical release/design notes, benchmark result files, private client artifacts and private Git history.
+All 372 synthetic regression cases passed with Python 3.12.14 and the pinned requirements: 367 passed in the sandbox run, and the five localhost HTTP cases passed when rerun with local socket permission. The initial sandbox socket failures were environment restrictions. Fourteen new tests cover separate content/audit previews, unchanged exact-content approval binding, HTML escaping, collision protection, selected-topic exclusions, new-run indexing defaults, legacy policy preservation, generated developer instructions and publication response headers.
 
-The processing code, requirements and synthetic tests are byte-identical to the tested 0.2.13 implementation. Current public-package verification is recorded in the repository's docs/public-distribution-verification.json; it checks both platform folders, archive parity and local links.
+All three input routes, shared request pacing, the complete 150-word review limit, same-run approved selection, availability, freshness and actual approval gates remain covered. The suite uses synthetic evidence and decisions, mocked providers and localhost fixtures. No live client collection, provider request, client approval or deployment was performed for this software update.
 
-Run `python -B scripts/run_tests.py -v` from this skill folder with Python 3.12+, pinned requirements, writable temporary storage and localhost fixture permissions. These tests exercise local mechanics and mocked providers. They do not establish factual correctness, all-site coverage, account/provider access or SEO outcomes. A separate native ChatGPT workspace-agent pilot has not been completed. Account setup, actual client review, release approval and publication remain distinct.
+The native review-preview command now writes the original hash-bound JSON plus a clean content HTML page and separate private evidence Markdown. The short issues summary remains in chat; one content approval still covers exact wording. New runs use noindex-crawlable; saved runs retain their recorded policy. A noindex header does not guarantee AI use or citations, and robots access needs separate deployment verification.
+
+Package parity, frontmatter and local links are checked separately. Installed-copy checks are recorded in the local installation receipt; source tests do not establish native Claude execution or account-connected provider access. Client artifacts remain unchanged and unpublished. Tests cannot certify factual truth, complete website coverage or SEO outcomes.
+
+This standalone distribution excludes historical release/design notes, benchmark results, private client artifacts and private Git history. A separate native ChatGPT workspace-agent pilot has not been completed.
