@@ -100,5 +100,52 @@ class PreviewOutputTests(unittest.TestCase):
         self.assertIn('omitted', preview['excluded_concept_ids'])
         self.assertNotIn(omitted['title'], content_html(preview))
 
+    def test_business_overview_offerings_details_then_policies_across_sites(self):
+        for business in ('Example B2B supplier', 'Example consumer brand', 'Example local cafe',
+                         'Example service company', 'Example online shop'):
+            with self.subTest(business=business):
+                topics = [('a', 'Privacy policy', 'Policy'), ('b', 'Team', 'Person'),
+                          ('c', 'Our services', 'Service'), ('d', business, 'Organization'),
+                          ('e', 'Product range', 'Product Category'),
+                          ('f', 'Policy insurance package', 'Product'),
+                          ('g', 'Warranty', 'Policy'), ('h', 'Branches', 'Location')]
+                base = next(iter(self.preview['concepts'].values()))
+                self.preview['concepts'] = {cid: {**copy.deepcopy(base), 'title': title, 'type': kind}
+                                            for cid, title, kind in topics}
+                doc = html.fromstring(content_html(self.preview))
+                self.assertEqual(doc.xpath('//h2/text()'), [business, 'Our services',
+                    'Policy insurance package', 'Product range', 'Branches', 'Team',
+                    'Privacy policy', 'Warranty'])
+
+    def test_order_is_stable_with_custom_types_languages_and_no_overview(self):
+        base = next(iter(self.preview['concepts'].values()))
+        topics = [('z', 'Zubehör', 'Product Group'), ('a', 'Über uns', 'Guide'),
+                  ('x', 'Áreas', 'Custom Type'), ('p', 'Datenschutz', 'Policy')]
+        self.preview['concepts'] = {cid: {**copy.deepcopy(base), 'title': title, 'type': kind,
+                                          'locale': 'de'} for cid, title, kind in topics}
+        rendered = content_html(self.preview)
+        self.preview['concepts'] = dict(reversed(list(self.preview['concepts'].items())))
+        self.assertEqual(rendered, content_html(self.preview))
+        self.assertEqual(html.fromstring(rendered).xpath('//h2/text()'),
+                         ['Zubehör', 'Áreas', 'Über uns', 'Datenschutz'])
+
+    def test_display_order_does_not_change_json_hash_or_source_wording(self):
+        base = next(iter(self.preview['concepts'].values()))
+        self.preview['concepts'] = {
+            'first': {**copy.deepcopy(base), 'title': 'Privacy', 'type': 'Policy'},
+            'last': {**copy.deepcopy(base), 'title': 'Company', 'type': 'Organization'}}
+        before = copy.deepcopy(self.preview)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            result = write_preview(self.preview, root/'review.json', root/'private')
+            self.assertEqual(json.loads(Path(result['preview']).read_text()), before)
+            self.assertEqual(result['preview_hash'], digest(before))
+            doc = html.fromstring(Path(result['content_preview']).read_text(encoding='utf-8'))
+            self.assertEqual(doc.xpath('//h2/text()'), ['Company', 'Privacy'])
+            statement = next(iter(before['claims'].values()))['public_statement']
+            self.assertEqual(doc.xpath('//div[@class="statement"]/p[@class="wording"]/text()'),
+                             [statement, statement])
+        self.assertEqual(self.preview, before)
+
 
 if __name__ == '__main__': unittest.main()

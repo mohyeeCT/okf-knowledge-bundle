@@ -7,6 +7,15 @@ from urllib.parse import urlsplit
 from .common import atomic_json, digest
 
 
+def _topic_order(item):
+    """Order the reader's view without changing approved data or public files."""
+    concept_id, concept = item
+    group = {"Organization": 0, "Service": 1, "Product": 1,
+             "Product Group": 1, "Product Category": 1, "Policy": 3}
+    return (group.get(concept.get("type"), 2), concept["title"].casefold(),
+            concept.get("locale", ""), concept_id)
+
+
 def _link(url):
     text = html.escape(str(url or ""), quote=True)
     parsed = urlsplit(str(url or ""))
@@ -19,7 +28,7 @@ def content_html(preview):
     """Show public wording and destinations; leave review machinery in the audit."""
     esc = lambda value: html.escape(str(value or ""), quote=True)
     sections = []
-    for concept in preview["concepts"].values():
+    for _, concept in sorted(preview["concepts"].items(), key=_topic_order):
         parts = [f'<section><h2>{esc(concept["title"])}</h2>',
                  f'<p class="wording">{esc(concept["description"])}</p>']
         if concept.get("resource"):

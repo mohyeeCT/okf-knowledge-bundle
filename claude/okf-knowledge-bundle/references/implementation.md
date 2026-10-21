@@ -1,4 +1,4 @@
-# Implementation — 0.2.14
+# Implementation — 0.2.15
 
 The core format is [Google's OKF v0.2](https://github.com/GoogleCloudPlatform/open-knowledge-format/blob/ad30107c31c06aec8a7d5636e0d1058118604e6f/SPEC.md), pinned to specification commit `ad30107c31c06aec8a7d5636e0d1058118604e6f`. Core conformance and this tool's stricter publishing profile are distinct. Structural validation does not certify factual truth or discoverability outcomes.
 

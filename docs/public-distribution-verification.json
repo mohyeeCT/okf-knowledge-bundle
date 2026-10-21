@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "version": "0.2.14",
+  "version": "0.2.15",
   "public_packaging_revision": 1,
   "platforms": [
     "claude",
