@@ -44,6 +44,11 @@ def parser():
     command("review-export")
     p = command("review-preview"); p.add_argument("--concept-ids", nargs="+", required=True); p.add_argument("--out", required=True)
     p = command("review-summary", False); p.add_argument("--file", required=True); p.add_argument("--expected-hash")
+    p = command("review-delivery", False); p.add_argument("--file", required=True); p.add_argument("--preview", required=True); p.add_argument("--out", required=True); p.add_argument("--link-prefix", required=True)
+    p = command("review-delivery-check", False); p.add_argument("--folder", required=True); p.add_argument("--message-file")
+    p = command("continuity-import"); p.add_argument("--file", required=True)
+    p = command("continuity-export"); p.add_argument("--out", required=True)
+    p = command("continuity-resolve"); p.add_argument("--key", required=True); p.add_argument("--reason", required=True); _review_args(p)
     p = command("review-batch"); p.add_argument("--preview", required=True); p.add_argument("--preview-hash", required=True); _review_args(p)
     p = command("bundle-select"); p.add_argument("--preview", required=True); p.add_argument("--preview-hash", required=True)
     p = command("review-import"); p.add_argument("--file", required=True); p.add_argument("--client", action="store_true"); _review_args(p)
@@ -104,6 +109,12 @@ def execute(args):
     if cmd == "review-summary":
         from .summary import check_summary
         return check_summary(args.file, args.expected_hash)
+    if cmd == "review-delivery":
+        from .delivery import seal_review
+        return seal_review(args.file, args.preview, args.out, args.link_prefix)
+    if cmd == "review-delivery-check":
+        from .delivery import verify_delivery
+        return verify_delivery(args.folder, args.message_file)
     if cmd == "validate":
         domains = _validation_domains(args)
         report = validation.validate_bundle(args.bundle, allowed_domains=domains)
@@ -128,6 +139,13 @@ def execute(args):
                                 decode_content_encoding=not bool(headers), follow_redirects=False)
         return verify_publication(manifest, args.base_url, fetch)
     store = StateStore(args.run)
+    if cmd == "continuity-export":
+        from .continuity import export_context
+        target = Path(args.out).resolve()
+        if target.exists() or target.is_relative_to(store.private.resolve()):
+            raise ValueError("Use a new private continuity file outside immutable state")
+        atomic_json(target, export_context(store.load()))
+        return {"continuity_file": str(target), "private": True}
     if cmd == "review-preview":
         from .batch_review import review_preview
         from .preview_output import write_preview
@@ -163,11 +181,19 @@ def execute(args):
         if cmd == "init":
             if (store.private / "current.json").exists():
                 raise ValueError("Run already exists; no reset or previous release overwrite")
-            state = new_state(_json(args.config))
+            config = _json(args.config)
+            config["continuity_required"] = True
+            state = new_state(config)
             result = {"run_id": state["run_id"], "run_root": str(store.root)}
         else:
             state = store.load()
-            if cmd in ("import-sf", "discover-csv", "discover-sitemap"):
+            if cmd == "continuity-import":
+                from .continuity import import_context
+                result = import_context(state, _json(args.file))
+            elif cmd == "continuity-resolve":
+                from .continuity import resolve_exclusion
+                result = resolve_exclusion(state, args.key, args.reason, args.by, args.at, args.channel, args.reference)
+            elif cmd in ("import-sf", "discover-csv", "discover-sitemap"):
                 from .ingest import ingest_sf, discover_csv, discover_sitemap
                 if cmd == "import-sf":
                     imported = ingest_sf(args.zip, state["config"], args.csv)

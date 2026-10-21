@@ -55,6 +55,8 @@ def state_fingerprint(state):
     # Absence retains historical candidate fingerprints exactly.
     if "bundle_selection" in state:
         material["bundle_selection"] = state["bundle_selection"]
+    if "continuity" in state:
+        material["continuity"] = state["continuity"]
     return digest(material)
 
 
@@ -443,6 +445,9 @@ def eligibility(state, now):
         add("profile.bundle.selection", "run", str(exc))
         selection = set()
     scoped_concepts = concepts if selection is None else {cid: concepts[cid] for cid in selection}
+    from .continuity import selection_issues
+    continuity_issues = selection_issues(state, scoped_concepts)
+    issues.extend(continuity_issues)
     intervals = {}
     for concept in scoped_concepts.values():
         days = config.get("freshness_days", {}).get(concept.get("type"), DEFAULT_DAYS.get(concept.get("type"), 90))
@@ -463,7 +468,8 @@ def eligibility(state, now):
             concept_results[cid] = {"eligible": False, "excluded_from_bundle": True, "issues": [],
                                     "path": None, "stale_after": None, "whole_concept_evidence_reviewers": []}
             continue
-        reasons, deadlines = [], []
+        reasons = [issue["message"] for issue in continuity_issues if issue["entity"] == cid]
+        deadlines = []
         try:
             if concept.get("revision") != concept_revision(concept, claims):
                 reasons.append("Concept material/claim revisions changed without new review")
