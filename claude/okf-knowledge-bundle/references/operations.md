@@ -42,6 +42,15 @@ python scripts/okf.py status --run RUN_ROOT
 
 CSV recognizes ordinary URL/Address/URLs and Search Console Top pages headers, including BOM/delimiter variants. Multiple plausible recognized columns still require explicit selection; no content-based column guessing occurs. Remote sitemap discovery also needs authorized direct network access. Uploaded sitemap references are bounded and may not escape the supplied local directory. For ambiguous CSV columns, inspect the reported candidates and supply the analyst's selection through `--column`; do not rename the file's columns. Companion SF CSV addresses alone do not prove file mapping; unverified joins remain pending.
 
+## Describing source observations
+
+- An uploaded SF HTML capture supports "the uploaded export shows." Use a saved capture's actual observation date where known; its import date is not proof of capture freshness.
+- A sitemap or CSV is URL discovery, not page-content verification. After an authorized content fetch and examination, describe that specific page as "checked on [actual date]."
+- A citation availability check establishes its reported availability only. It does not make old quoted content current.
+- For mixed or resumed runs, attribute each finding to its actual uploaded, historical or newly fetched evidence. A missing statement in a limited capture is not proof that it was removed from the website.
+
+Keep these distinctions in the short chat review without adding another analyst question or exceeding 150 words. They guide assistant wording; the word-count checker does not prove temporal accuracy.
+
 ## Current managed collection
 
 Read [managed-collection.md](managed-collection.md) before online collection. The current workflow uses guarded public direct HTML and the existing account-connected Firecrawl MCP when rendering is needed. Analysts never supply API keys or environment files. The host assistant reserves MCP requests, calls the discovered tool, saves the exact complete result, and imports its receipt; local scripts do not automatically invoke host connectors. No separate model API is used. Review/availability/publication gates below still apply.
