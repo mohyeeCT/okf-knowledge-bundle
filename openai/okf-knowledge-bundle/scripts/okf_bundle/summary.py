@@ -8,9 +8,13 @@ from .common import digest
 
 def check_summary(path, expected_hash=None):
     raw = Path(path).read_bytes()
+    return check_text(raw.decode("utf-8-sig"), expected_hash, raw)
+
+
+def check_text(text, expected_hash=None, raw=None):
+    raw = text.encode("utf-8") if raw is None else raw
     if len(raw) > 64 * 1024:
         raise ValueError("Review summary exceeds the text size bound")
-    text = raw.decode("utf-8-sig")
     if re.search(r"</?[A-Za-z][^>]*>|<!--|```|~~~", text):
         raise ValueError("Use ordinary prose and inline Markdown links for the review summary, without HTML or code blocks")
     # Conservative whitespace count: formatting-only tokens are not words.
@@ -26,4 +30,4 @@ def check_summary(path, expected_hash=None):
     return {"valid": valid, "word_count": len(words), "limit": 150,
             "sha256": sha, "unchanged": unchanged, "text": text,
             "count_method": "conservative whitespace tokens; numbers, list markers and link labels included; standalone Markdown punctuation excluded",
-            "instruction": "Send text verbatim as the entire review response. Recheck after any edit or added introduction/closing. This is not content approval."}
+            "instruction": "Diagnostic count only. Use review-delivery to seal this file and the native content preview with a counted delivery note. Do not rewrite it in chat. This is not content approval."}

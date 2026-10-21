@@ -23,6 +23,10 @@ class CLITests(unittest.TestCase):
             def call(*args):
                 return execute(parser().parse_args([*args, "--run", str(run)]))
             call("init", "--config", str(config))
+            continuity = root / "continuity.json"
+            continuity.write_text(json.dumps({"domains": ["example.com"], "checked_references": ["Synthetic first-job fixture"],
+                                              "history_status": "checked", "exclusions": []}), encoding="utf-8")
+            call("continuity-import", "--file", str(continuity))
             if route == "sf":
                 archive = root / "sf.zip"
                 with zipfile.ZipFile(archive, "w") as z:

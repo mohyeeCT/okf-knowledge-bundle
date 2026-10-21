@@ -76,14 +76,14 @@ python scripts/okf.py collection-reconcile --run RUN_ROOT --id SOURCE_ID --attem
 
 ## Compact review (default)
 
-Prepare a preview of the exact selected, supported concepts. Give a separate short issues summary in chat and link the clean proposed-content page; critical unresolved facts must be resolved or omitted first. Keep prior known conflicts excluded until actually reconciled, even when a smaller new capture lacks the competing page. Record a single explicit content approval for that preview through the batch helper. It does not confirm business conflicts or authorize publication.
+Prepare a preview of the exact selected, supported concepts. Deliver a separate sealed short review attachment and link the clean proposed-content page; critical unresolved facts must be resolved or omitted first. Keep prior known conflicts excluded until actually reconciled, even when a smaller new capture lacks the competing page. Record a single explicit content approval for that preview through the batch helper. It does not confirm business conflicts or authorize publication.
 
 ```text
 python scripts/okf.py review-preview --run RUN_ROOT --concept-ids SELECTED_ID ... --out PRIVATE_PREVIEW.json
 python scripts/okf.py review-batch --run RUN_ROOT --preview PRIVATE_PREVIEW.json --preview-hash EXACT_PREVIEW_HASH --by human:actual-analyst --at ACTUAL_RECEIVED_ISO_TIME --channel chat --reference ACTUAL_APPROVAL_MESSAGE
 ```
 
-The command returns `content_preview` (PRIVATE_PREVIEW.content.html) and `audit_details` (PRIVATE_PREVIEW.audit.md), plus the unchanged private JSON contract/hash. Send the content page to the analyst: titles, descriptions, exact statements and per-statement source links. It contains no evidence quotations, IDs or review-state machinery; secondary topic metadata is collapsed. Keep the evidence/audit file available separately, not another required task. Do not hand-write another renderer or put audit details back into a dashboard. The short chat summary holds the critical questions/exclusions; a single approval of the clean preview is still sufficient. Keep meaningful factual qualifications in the public wording itself. Never ask analysts to edit JSON. Batch acceptance is atomic, refuses pending critical facts and binds the current source/revision set. New runs use `critical-only`; `all-risk` remains an explicit optional stricter profile and the default for legacy configurations with no policy. Do not change a saved run policy merely to bypass its earlier decisions.
+The command returns `content_preview` (PRIVATE_PREVIEW.content.html) and `audit_details` (PRIVATE_PREVIEW.audit.md), plus the unchanged private JSON contract/hash. Send the content page to the analyst: titles, descriptions, exact statements and per-statement source links. It contains no evidence quotations, IDs or review-state machinery; secondary topic metadata is collapsed. Keep the evidence/audit file available separately, not another required task. Do not hand-write another renderer or put audit details back into a dashboard. The short review attachment holds the critical questions/exclusions; a single approval of the clean preview is still sufficient. Keep meaningful factual qualifications in the public wording itself. Never ask analysts to edit JSON. Batch acceptance is atomic, refuses pending critical facts and binds the current source/revision set. New runs use `critical-only`; `all-risk` remains an explicit optional stricter profile and the default for legacy configurations with no policy. Do not change a saved run policy merely to bypass its earlier decisions.
 
 `review-batch` also binds the exact selected topic/statement revisions to that actual content-batch decision. Native readiness, candidate and packaging use this selection in the existing run. Excluded records remain private, unchanged and unresolved; they do not require a scoped run, owner partial-release acceptance or another content approval. The manifest lists withheld topic IDs. Its `partial` flag describes withheld inventory; it is not a new approval or a requirement to pass `--partial` for a fully ready approved selection. Selected failures still block the whole selection.
 
@@ -97,16 +97,19 @@ This refuses unapproved, edited, changed-revision or superseded selections and m
 
 Generate the unpublished candidate folder after content approval when other readiness requirements are satisfied. It already contains `okf/`, `release-manifest.json` and `DEPLOYMENT.md`. Do not demand deployment or client release approval simply to show that candidate; obtain owner approval before production packaging/publication. If actual review or availability is still pending, a user-requested demonstration can show draft output without inventing approvals.
 
-### Validate the final outgoing review
+### Seal the actual review for delivery
 
-Write the complete final assistant review response to a private UTF-8 Markdown file, including any introduction, headings, questions, link labels, approval request and unpublished notice. Run:
+Write a short private Markdown review (aim for 120 words) containing counts, critical questions/exclusions, one content-approval request and unpublished status. Keep the native proposed-content HTML separate. The assistant performs these commands; analysts do not handle files or terminal arguments themselves.
 
 ```text
-python scripts/okf.py review-summary --file PRIVATE_FINAL_REVIEW.md
-python scripts/okf.py review-summary --file PRIVATE_FINAL_REVIEW.md --expected-hash PREVIOUS_SHA256
+python scripts/okf.py review-summary --file PRIVATE_REVIEW.md
+python scripts/okf.py review-delivery --file PRIVATE_REVIEW.md --preview NATIVE_PREVIEW.content.html --out NEW_PRIVATE_DELIVERY_FOLDER --link-prefix HOST_ATTACHMENT_PREFIX
+python scripts/okf.py review-delivery-check --folder NEW_PRIVATE_DELIVERY_FOLDER
 ```
 
-The first command returns `valid`, the conservative word count, SHA256 and exact `text`. Empty or over-150 summaries fail (CLI exit 2). Send only the returned text when valid; no extra preface, closing or second summary. Re-run after any edit. The optional hash refuses a changed file even if the new count still fits. This helper does not alter the run or approve anything. It counts whitespace tokens conservatively, excluding standalone Markdown punctuation while including every numeric token, ordered-list markers and link labels; link destinations/titles may overcount. Use ordinary prose and inline Markdown links, without HTML or code blocks. Proposed content, private evidence details and developer instructions are separate files. Only the issues summary is subject to the 150-word limit. A helper cannot intercept a host's final chat stream: the assistant must send the checked text verbatim.
+The destination must not exist. Choose a host-supported attachment prefix pointing to that folder (for Claude artifacts, normally `sandbox:/mnt/data/REVIEW_FOLDER`). The command copies the exact reviewed bytes and native HTML, creates a hash receipt and returns `delivery_text`. The review AND that short note must total at most 150 words; an earlier valid 150-word draft does not leave room for an added note. Attach `analyst-review.md` and `proposed-content.html` unchanged. Send only `delivery_text`; do not repeat or rewrite the review in chat or add headings/closings. Any edit needs a newly sealed folder. Files are private and confer no approval.
+
+For a host test, capture the actual delivered message into a UTF-8 file and run `review-delivery-check --folder FOLDER --message-file ACTUAL_MESSAGE.md`. It rejects changed attachments, a changed native preview, a mismatching final chat message and a combined word-count overflow. Without `--message-file`, it verifies files only and reports `message_checked: false`. It cannot intercept the host or guarantee that a model obeys the delivery instruction. Keep Markdown text as an attachment if the host would otherwise regenerate it as an artifact. `review-summary` remains available for diagnostic counting, including numeric words; it is not the final delivery mechanism.
 
 ## Drafts and reviews
 

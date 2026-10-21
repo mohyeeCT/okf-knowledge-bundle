@@ -9,6 +9,10 @@ def review_preview(state, concept_ids):
     ids = sorted(concept_ids)
     if not ids or len(ids) != len(set(ids)):
         raise ValueError("Select a nonempty unique concept set")
+    from .continuity import selection_issues
+    issues = selection_issues(state, ids)
+    if issues:
+        raise ValueError("; ".join(issue["message"] for issue in issues))
     concepts, claims, sources = {}, {}, {}
     for cid in ids:
         concept = state["concepts"].get(cid)
