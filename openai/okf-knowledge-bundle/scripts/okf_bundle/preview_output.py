@@ -10,9 +10,12 @@ from .common import atomic_json, digest
 def _topic_order(item):
     """Order the reader's view without changing approved data or public files."""
     concept_id, concept = item
-    group = {"Organization": 0, "Service": 1, "Product": 1,
+    tags = {tag.strip().casefold() for tag in concept.get("tags", [])}
+    overview = (concept.get("type") == "Organization"
+                and bool(tags & {"business-overview", "overview"}))
+    group = {"Service": 1, "Product": 1,
              "Product Group": 1, "Product Category": 1, "Policy": 3}
-    return (group.get(concept.get("type"), 2), concept["title"].casefold(),
+    return (0 if overview else group.get(concept.get("type"), 2), concept["title"].casefold(),
             concept.get("locale", ""), concept_id)
 
 

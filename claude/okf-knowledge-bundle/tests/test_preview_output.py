@@ -112,6 +112,7 @@ class PreviewOutputTests(unittest.TestCase):
                 base = next(iter(self.preview['concepts'].values()))
                 self.preview['concepts'] = {cid: {**copy.deepcopy(base), 'title': title, 'type': kind}
                                             for cid, title, kind in topics}
+                self.preview['concepts']['d']['tags'] = ['business-overview']
                 doc = html.fromstring(content_html(self.preview))
                 self.assertEqual(doc.xpath('//h2/text()'), [business, 'Our services',
                     'Policy insurance package', 'Product range', 'Branches', 'Team',
@@ -133,7 +134,10 @@ class PreviewOutputTests(unittest.TestCase):
         base = next(iter(self.preview['concepts'].values()))
         self.preview['concepts'] = {
             'first': {**copy.deepcopy(base), 'title': 'Privacy', 'type': 'Policy'},
-            'last': {**copy.deepcopy(base), 'title': 'Company', 'type': 'Organization'}}
+            'contact': {**copy.deepcopy(base), 'title': 'Contact', 'type': 'Organization',
+                        'tags': ['contact']},
+            'last': {**copy.deepcopy(base), 'title': 'Company', 'type': 'Organization',
+                     'tags': ['overview']}}
         before = copy.deepcopy(self.preview)
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -141,11 +145,53 @@ class PreviewOutputTests(unittest.TestCase):
             self.assertEqual(json.loads(Path(result['preview']).read_text()), before)
             self.assertEqual(result['preview_hash'], digest(before))
             doc = html.fromstring(Path(result['content_preview']).read_text(encoding='utf-8'))
-            self.assertEqual(doc.xpath('//h2/text()'), ['Company', 'Privacy'])
+            self.assertEqual(doc.xpath('//h2/text()'), ['Company', 'Contact', 'Privacy'])
             statement = next(iter(before['claims'].values()))['public_statement']
             self.assertEqual(doc.xpath('//div[@class="statement"]/p[@class="wording"]/text()'),
-                             [statement, statement])
+                             [statement, statement, statement])
         self.assertEqual(self.preview, before)
+
+    def test_overview_precedes_contact_when_both_are_organizations(self):
+        base = next(iter(self.preview['concepts'].values()))
+        for marker in ('business-overview', 'overview'):
+            with self.subTest(marker=marker):
+                self.preview['concepts'] = {
+                    'contact': {**copy.deepcopy(base), 'title': 'Contacting Example Firm',
+                                'type': 'Organization', 'tags': ['contact', 'hours']},
+                    'overview': {**copy.deepcopy(base), 'title': 'Example Firm',
+                                 'type': 'Organization', 'tags': [marker]},
+                    'service': {**copy.deepcopy(base), 'title': 'Consulting',
+                                'type': 'Service', 'tags': ['consulting']}}
+                self.assertEqual(html.fromstring(content_html(self.preview)).xpath('//h2/text()'),
+                                 ['Example Firm', 'Consulting', 'Contacting Example Firm'])
+
+    def test_overview_priority_is_language_independent_and_type_bounded(self):
+        base = next(iter(self.preview['concepts'].values()))
+        self.preview['concepts'] = {
+            'contact': {**copy.deepcopy(base), 'title': 'Anschrift', 'type': 'Organization',
+                        'tags': ['contact'], 'locale': 'de'},
+            'overview': {**copy.deepcopy(base), 'title': 'Zentrale Firma', 'type': 'Organization',
+                         'tags': [' BUSINESS-OVERVIEW '], 'locale': 'de'},
+            'product': {**copy.deepcopy(base), 'title': 'Product overview', 'type': 'Product',
+                        'tags': ['overview']},
+            'misleading': {**copy.deepcopy(base), 'title': 'Business overview contact form',
+                           'type': 'Organization', 'tags': ['business-overview-extra']}}
+        before = content_html(self.preview)
+        self.preview['concepts'] = dict(reversed(list(self.preview['concepts'].items())))
+        self.assertEqual(content_html(self.preview), before)
+        self.assertEqual(html.fromstring(before).xpath('//h2/text()'),
+                         ['Zentrale Firma', 'Product overview', 'Anschrift',
+                          'Business overview contact form'])
+
+    def test_contact_only_organization_does_not_create_or_impersonate_overview(self):
+        base = next(iter(self.preview['concepts'].values()))
+        self.preview['concepts'] = {
+            'contact': {**copy.deepcopy(base), 'title': 'Contact', 'type': 'Organization',
+                        'tags': ['contact']},
+            'service': {**copy.deepcopy(base), 'title': 'Training', 'type': 'Service'},
+            'policy': {**copy.deepcopy(base), 'title': 'Privacy', 'type': 'Policy'}}
+        self.assertEqual(html.fromstring(content_html(self.preview)).xpath('//h2/text()'),
+                         ['Training', 'Contact', 'Privacy'])
 
 
 if __name__ == '__main__': unittest.main()
