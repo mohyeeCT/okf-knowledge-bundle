@@ -2,6 +2,36 @@
 from .common import digest, normalize_url, public_url, utc_now
 from .extraction import extract_html
 from .review import normalize_quote
+from .availability_diagnostics import explain_check, explain_failure
+
+
+def source_check_plan(state):
+    """Read-only exact source scope, bound to an actual approved content batch."""
+    from .export import _approved_bundle_ids
+    from .validation import parse_instant
+    selected = _approved_bundle_ids(state, parse_instant(utc_now()))
+    if selected is None:
+        raise ValueError("Record review-batch or bind its existing approval with bundle-select first")
+    claim_ids = sorted({cid for tid in selected for cid in state["concepts"][tid]["claim_ids"]})
+    source_ids = sorted({e["source_id"] for cid in claim_ids for e in state["claims"][cid]["evidence"]})
+    return {"scope": "approved-bundle-only", "concept_ids": sorted(selected), "claim_ids": claim_ids,
+            "source_ids": source_ids, "source_count": len(source_ids), "network_requests": 0,
+            "batches": [source_ids[i:i + 500] for i in range(0, len(source_ids), 500)],
+            "sources": [{"source_id": sid, "url": state["sources"][sid]["citation_url"],
+                         "availability": state["sources"][sid].get("availability", "unknown"),
+                         "last_check": {key: value for key, value in (state["sources"][sid].get("availability_check") or {}).items()
+                                        if key in {"at", "status", "outcome", "diagnostic"}}}
+                        for sid in source_ids]}
+
+
+def check_approved_availability(state, source_ids=None, fetch=None, **transport):
+    plan = source_check_plan(state)
+    ids = plan["source_ids"] if source_ids is None else source_ids
+    if not set(ids).issubset(plan["source_ids"]):
+        raise ValueError("Approved-bundle checks cannot include an excluded-only source")
+    result = check_availability(state, ids, fetch, claim_ids=plan["claim_ids"], **transport)
+    result.update(scope="approved-bundle-only", approved_source_count=plan["source_count"])
+    return result
 
 
 def markdown_comparison_required(source, check):
@@ -25,7 +55,7 @@ def _invalidate_reviews(state, source_claims):
             concept["review"] = {"decision": "pending"}
 
 
-def check_availability(state, source_ids, fetch=None, *, clock=None, sleep=None):
+def check_availability(state, source_ids, fetch=None, *, clock=None, sleep=None, claim_ids=None):
     if not source_ids or len(source_ids) > 500:
         raise ValueError("Plan at most 500 explicit cited-URL checks per batch")
     if len(source_ids) != len(set(source_ids)):
@@ -73,7 +103,10 @@ def check_availability(state, source_ids, fetch=None, *, clock=None, sleep=None)
                         check["outcome"] = "unusable-" + extracted["quality"]
                 else:
                     source["availability"] = "unknown" if redirected else "live"
-                    source_claims = [c for c in state["claims"].values() if any(e["source_id"] == sid for e in c["evidence"])]
+                    all_source_claims = [c for c in state["claims"].values() if any(e["source_id"] == sid for e in c["evidence"])]
+                    source_claims = [c for c in all_source_claims if claim_ids is None or c["id"] in claim_ids]
+                    if claim_ids is not None:
+                        check["checked_evidence_hashes"] = sorted({digest(e) for c in source_claims for e in c["evidence"] if e["source_id"] == sid})
                     check["quotes_supported"] = all(normalize_quote(e["quote"]) in normalize_quote(extracted["evidence"].get(e["locator"], "")) for c in source_claims for e in c["evidence"] if e["source_id"] == sid)
                     check["automatic_quotes_supported"] = check["quotes_supported"]
                     old = source["versions"].get(source.get("active_version"), {})
@@ -127,11 +160,12 @@ def check_availability(state, source_ids, fetch=None, *, clock=None, sleep=None)
                     if not redirected:
                         source.pop("redirect_review_required", None)
                     if changed or quote_failure:
-                        _invalidate_reviews(state, source_claims)
+                        _invalidate_reviews(state, all_source_claims if changed else source_claims)
                         source.setdefault("warnings", []).append("Current evidence/robots metadata differs from retained evidence; collect/review the current representation before release")
             else:
                 source["availability"] = "nonpublic" if status in (401, 403) else "failed"
                 check["outcome"] = "known-unavailable"
+            check["diagnostic"] = explain_check(check, source, state["config"])
             source.setdefault("availability_history", []).append(check)
             source["availability_check"] = check
             source["availability_acceptance"] = None
@@ -144,6 +178,7 @@ def check_availability(state, source_ids, fetch=None, *, clock=None, sleep=None)
                 source["availability"] = "unknown"
             check = {"url": source["citation_url"], "version_id": source["active_version"],
                      "at": at, "outcome": "check-failed", "reason": str(error) if isinstance(error, AvailabilityPolicyError) else type(error).__name__, "status": None}
+            check["diagnostic"] = explain_failure(error, source, state["config"])
             source["availability_check"] = check
             source.setdefault("availability_history", []).append(check)
             observations.append({"source_id": sid, **check})
