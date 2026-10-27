@@ -1,14 +1,14 @@
 {
   "status": "passed",
-  "version": "0.2.16",
+  "version": "0.2.18",
   "public_packaging_revision": 1,
   "platforms": [
     "claude",
     "openai"
   ],
-  "files_per_skill": 64,
+  "files_per_skill": 70,
   "matching_platform_and_archive_hashes": true,
-  "local_markdown_links_checked": 49,
+  "local_markdown_links_checked": 54,
   "client_data_or_historical_notes_included": false,
   "network_or_provider_calls": 0
 }

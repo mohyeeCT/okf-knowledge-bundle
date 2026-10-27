@@ -1,4 +1,4 @@
-# Website OKF Knowledge Bundle 0.2.17
+# Website OKF Knowledge Bundle 0.2.18
 
 Prepare reviewed website knowledge as an unpublished `okf/` folder from Screaming Frog full-HTML ZIPs, XML sitemaps or URL CSVs. The assistant handles processing; analysts review exact wording and sources. Online routes prefer guarded direct HTML and use compatible account-connected Firecrawl rendering when needed.
 

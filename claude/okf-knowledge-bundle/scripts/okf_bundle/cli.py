@@ -55,7 +55,8 @@ def parser():
     p = command("review"); p.add_argument("--entity", choices=["claim", "concept"], required=True); p.add_argument("--id", required=True); p.add_argument("--revision", required=True); p.add_argument("--dimension", required=True); p.add_argument("--decision", required=True); p.add_argument("--reason"); _review_args(p)
     p = command("source-review"); p.add_argument("--id", required=True); p.add_argument("--url", required=True); p.add_argument("--scope", choices=["included", "excluded", "pending"], required=True); p.add_argument("--reason", required=True); p.add_argument("--accept-comparison", action="store_true"); _review_args(p)
     p = command("availability-accept"); p.add_argument("--ids", nargs="+", required=True); p.add_argument("--reason", required=True); _review_args(p)
-    p = command("availability-check"); p.add_argument("--ids", nargs="+", required=True); p.add_argument("--authorized", action="store_true")
+    command("source-check-plan")
+    p = command("availability-check"); p.add_argument("--ids", nargs="+"); p.add_argument("--approved", action="store_true"); p.add_argument("--authorized", action="store_true")
     p = command("owner-set"); p.add_argument("--owner", required=True); _review_args(p)
     p = command("alias-approve"); p.add_argument("--source-id", required=True); p.add_argument("--target-id", required=True); p.add_argument("--reason", required=True); _review_args(p)
     command("readiness")
@@ -160,9 +161,12 @@ def execute(args):
     if cmd == "recover-lock":
         store.recover_lock(args.reason)
         return {"recovered": True}
-    if cmd in ("status", "readiness", "packets", "review-export"):
+    if cmd in ("status", "readiness", "packets", "review-export", "source-check-plan"):
         state = store.load()
         out = store.root / "outputs"
+        if cmd == "source-check-plan":
+            from .availability import source_check_plan
+            return source_check_plan(state)
         if cmd == "status":
             from .network import awaiting_retry_results, pending_attempts
             report = reports(state, out)
@@ -292,8 +296,11 @@ def execute(args):
             elif cmd == "availability-check":
                 if not args.authorized:
                     raise ValueError("Cited-URL availability checks require separate target/scope authorization")
-                from .availability import check_availability
-                result = check_availability(state, args.ids)
+                from .availability import check_availability, check_approved_availability
+                if not args.approved and not args.ids:
+                    raise ValueError("Use --approved for the approved bundle, or supply explicit --ids")
+                result = (check_approved_availability(state, args.ids) if args.approved
+                          else check_availability(state, args.ids))
             elif cmd == "alias-approve":
                 approve_alias(state, args.source_id, args.target_id, args.by, args.at, args.channel, args.reference, args.reason)
                 result = {"alias_source_id": args.source_id, "target_source_id": args.target_id, "history_preserved": True}

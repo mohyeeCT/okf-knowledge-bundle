@@ -272,6 +272,8 @@ def _source_issues(state, evidence, now):
     captured_status = source.get("captured_status")
     check = source.get("availability_check") or {}
     live_issues = _live_check_issues(state, source, version_id, now) if availability == "live" else []
+    if availability == "live" and "checked_evidence_hashes" in check and digest(evidence) not in check["checked_evidence_hashes"]:
+        reasons.append("This evidence was outside the last approved-source check; check the newly selected evidence before release")
     if check.get("version_id") == version_id and check.get("requires_source_refresh") is True:
         reasons.append("Current source evidence changed; retain and review the new representation before release")
     superseded = (availability == "live" and not live_issues and check.get("supersedes_captured_failure") is True
